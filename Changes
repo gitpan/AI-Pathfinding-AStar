@@ -1,5 +1,9 @@
 Revision history for Perl extension AI::Pathfinding::AStar.
 
+0.02  Thu Aug  26 09:30:00 2004
+	- restructured the module to act as a base class - It is now actually useful!!
+	- reworked the documentation to be more clear
+
 0.01  Sat Sep  10 11:20:23 2003
 	- original version uploaded to CPAN
 

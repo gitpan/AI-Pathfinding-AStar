@@ -3,19 +3,21 @@ package AI::Pathfinding::AStar;
 use 5.006;
 use strict;
 use warnings;
-use vars qw($VERSION @ISA @EXPORT @EXPORT_OK);
+use Carp;
 
-require Exporter;
-
-@ISA = qw(Exporter AutoLoader);
-@EXPORT = qw();
-@EXPORT_OK = qw(&findPath);
-
-$VERSION = '0.01';
+our $VERSION = '0.02';
 
 use Heap::Simple;
 my $open = Heap::Simple->new(order => "<", elements => [Any => \&calcF], user_data => "Open List");
 my $nodes = {};
+
+sub _init {
+    my $self = shift;
+    croak "no getSurrounding() method defined" unless $self->can("getSurrounding");
+
+    return $self->SUPER::_init(@_);
+}
+
 
 sub findPath
 {
@@ -41,11 +43,11 @@ BIGLOOP:
 		$nodes->{$curr_node}->{inopen} = 0;
 
 		#get surrounding squares
-		my $surr_nodes = $map->astar_surrounding($curr_node, $target);
+		my $surr_nodes = $map->getSurrounding($curr_node, $target);
 		foreach my $node (@$surr_nodes)
 		{
 			my ($surr_id, $surr_cost, $surr_h) = @$node;
-			
+
 			#skip the node if it's in the CLOSED list
 			next if ( (exists $nodes->{$surr_id}) && (! $nodes->{$surr_id}->{inopen}) );
 
@@ -130,22 +132,24 @@ AI::Pathfinding::AStar - Perl implementation of the A* pathfinding algorithm
 
 =head1 SYNOPSIS
 
-  use AI::Pathfinding::AStar qw(findPath)
-  my $path = &findPath($map_obj, $start, $target);
+  package My::Map::Package;
+  use base AI::Pathfinding::AStar;
 
+# Methods required by AI::Pathfinding::AStar
+  sub getSurrounding { ... }
+
+  package main;
+  use My::Map::Package;
+
+  my $map = My::Map::Package->new or die "No map for you!";
+  my $path = $map->findPath($start, $target);
   print join(', ', @$path), "\n";
 
 =head1 DESCRIPTION
 
-This module implements the A* pathfinding algorithm.  It attempts to be as generally useful as possible by leaving the determination of legal moves and heuristic calculations to an external map object.
+This module implements the A* pathfinding algorithm.  It acts as a base class from which a custom map object can be derived.  It requires from the map object a subroutine named C<getSurrounding> (described below) and provides to the object a routine called C<findPath> (also described below.)  It should also be noted that AI::Pathfinding::AStar defines two other subs (C<calcF> and C<calcG>) which are used only by the C<findPath> routine.
 
-This object can export a single function, C<&findPath>, and requires the following parameters:
-
-=over
-
-=item Map Object
-
-AI::Pathfinding::AStar assumes that the user has created a Perl object representing the given playing field.  A reference to this object must be passed.  This object must implement a method by the name C<&astar_surrounding> which accepts an identifier for a node on your map as well as an identifier for the target node.  This method must return a reference to an array containing references to sub-arrays each describing the nodes adjacent to the given node.  Each sub-array should have 3 elements:
+AI::Pathfinding::AStar requires that the map object define a routine named C<getSurrounding> which accepts an identifier of a particular node on your map, and returns an array reference containing the following details about each of the surrounding nodes:
 
 =over
 
@@ -157,18 +161,9 @@ AI::Pathfinding::AStar assumes that the user has created a Perl object represent
 
 =back
 
-Basically you should return a reference like this: C<return [ [$node1, $cost1, $h1], [$node2, $cost2, $h2], [...], ...];>
-I know this sounds confusing.  Please refer to the ExampleMap.pm sourcefile for a very basic example of a conforming map object.
+Basically you should return an array reference like this: C<return [ [$node1, $cost1, $h1], [$node2, $cost2, $h2], [...], ...];>  For more information on heuristics and the best ways to calculate them, visit the links listed in the I<SEE ALSO> section below.  For a very brief idea of how to write a getSurrounding routine, refer to the included tests.
 
-=item Starting Node ID
-
-=item Target Node ID
-
-AI::Pathfinding::AStar of course needs to know from where you're starting and where you're heading.  The AStar routine does not care  really what format you choose for your Node IDs.  As long as they are unique and can be recognized by Perl's C<exists $hash{$nodeid}> then they will work.
-
-=back
-
-This routine then returns a reference to an array of Node IDs representing the least expensive path to your target node.
+As mentioned earlier, AI::Pathfinding::AStar provides a routine named C<findPath> which requires as input the starting and target node identifiers.  The C<findPath> routine does not care what format you choose for your node IDs.  As long as they are unique, and can be recognized by Perl's C<exists $hash{$nodeid}>, then they will work.  In return, this routine returns a reference to an array of node identifiers representing the least expensive path to your target node.  An empty array means that the target node is entirely unreacheable from the given source.
 
 =head1 PREREQUISITES
 
@@ -176,18 +171,16 @@ This module requires Heap::Simple to function.
 
 =head1 SEE ALSO
 
-Heap::Simple, L<http://www.policyalmanac.org/games/aStarTutorial.htm>
-This distribution contains an example map object and test script in the examples directory that may be of assistance.
+Heap::Simple, L<http://www.policyalmanac.org/games/aStarTutorial.htm>, L<http://xenon.stanford.edu/~amitp/gameprog.html>
 
 =head1 AUTHOR
 
-Aaron Dalton - acdalton@cpan.org
-This is my very first CPAN contribution and I am B<not> a professional programmer.  Any feedback you may have, even regarding issues of style, would be greatly appreciated.  I hope it is of some use to somebody.
+Aaron Dalton - aaron@daltons.ca
+This is my very first CPAN contribution and I am B<not> a professional programmer.  Any feedback you may have, even regarding issues of style, would be greatly appreciated.  I hope it is of some use.
 
 =head1 COPYRIGHT AND LICENSE
 
-Copyright 2003 by Aaron Dalton
-
+Copyright (c) 2004 Aaron Dalton.  All rights reserved.
 This library is free software; you can redistribute it and/or modify
 it under the same terms as Perl itself.
 
