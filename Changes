@@ -1,5 +1,10 @@
 Revision history for Perl extension AI::Pathfinding::AStar.
 
+0.03  Sat Oct  15 21:00:00 2005
+	- fixed a bug in the which successive calls of findPath() would 
+fail to find an existing path
+	- made a few minor documentation changes to be a little more clear
+
 0.02  Thu Aug  26 09:30:00 2004
 	- restructured the module to act as a base class - It is now actually useful!!
 	- reworked the documentation to be more clear

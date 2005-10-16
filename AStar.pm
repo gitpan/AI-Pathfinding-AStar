@@ -5,11 +5,10 @@ use strict;
 use warnings;
 use Carp;
 
-our $VERSION = '0.02';
+our $VERSION = '0.03';
 
 use Heap::Simple;
-my $open = Heap::Simple->new(order => "<", elements => [Any => \&calcF], user_data => "Open List");
-my $nodes = {};
+my $nodes;
 
 sub _init {
     my $self = shift;
@@ -23,6 +22,8 @@ sub findPath
 {
 	my ($map, $start, $target) = @_;
 
+	my $open = Heap::Simple->new(order => "<", elements => [Any => \&calcF], user_data => "Open List");
+	$nodes = {};
 	my $path = [];
 	my $curr_node = undef;
 
@@ -135,7 +136,7 @@ AI::Pathfinding::AStar - Perl implementation of the A* pathfinding algorithm
   package My::Map::Package;
   use base AI::Pathfinding::AStar;
 
-# Methods required by AI::Pathfinding::AStar
+  # Methods required by AI::Pathfinding::AStar
   sub getSurrounding { ... }
 
   package main;
@@ -149,7 +150,7 @@ AI::Pathfinding::AStar - Perl implementation of the A* pathfinding algorithm
 
 This module implements the A* pathfinding algorithm.  It acts as a base class from which a custom map object can be derived.  It requires from the map object a subroutine named C<getSurrounding> (described below) and provides to the object a routine called C<findPath> (also described below.)  It should also be noted that AI::Pathfinding::AStar defines two other subs (C<calcF> and C<calcG>) which are used only by the C<findPath> routine.
 
-AI::Pathfinding::AStar requires that the map object define a routine named C<getSurrounding> which accepts an identifier of a particular node on your map, and returns an array reference containing the following details about each of the surrounding nodes:
+AI::Pathfinding::AStar requires that the map object define a routine named C<getSurrounding> which accepts the starting and ending node ids on your map, and returns an array reference containing the following details about each of the surrounding nodes:
 
 =over
 
@@ -161,7 +162,7 @@ AI::Pathfinding::AStar requires that the map object define a routine named C<get
 
 =back
 
-Basically you should return an array reference like this: C<return [ [$node1, $cost1, $h1], [$node2, $cost2, $h2], [...], ...];>  For more information on heuristics and the best ways to calculate them, visit the links listed in the I<SEE ALSO> section below.  For a very brief idea of how to write a getSurrounding routine, refer to the included tests.
+Basically you should return an array reference like this: C<[ [$node1, $cost1, $h1], [$node2, $cost2, $h2], [...], ...];>  For more information on heuristics and the best ways to calculate them, visit the links listed in the I<SEE ALSO> section below.  For a very brief idea of how to write a getSurrounding routine, refer to the included tests.
 
 As mentioned earlier, AI::Pathfinding::AStar provides a routine named C<findPath> which requires as input the starting and target node identifiers.  The C<findPath> routine does not care what format you choose for your node IDs.  As long as they are unique, and can be recognized by Perl's C<exists $hash{$nodeid}>, then they will work.  In return, this routine returns a reference to an array of node identifiers representing the least expensive path to your target node.  An empty array means that the target node is entirely unreacheable from the given source.
 

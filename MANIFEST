@@ -4,3 +4,4 @@ MANIFEST
 Makefile.PL
 README
 t/01_AI-Pathfinding-AStar.t
+META.yml                                 Module meta-data (added by MakeMaker)
