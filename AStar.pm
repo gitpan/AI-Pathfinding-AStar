@@ -5,7 +5,7 @@ use strict;
 use warnings;
 use Carp;
 
-our $VERSION = '0.03';
+our $VERSION = '0.04';
 
 use Heap::Simple;
 my $nodes;
@@ -18,8 +18,7 @@ sub _init {
 }
 
 
-sub findPath
-{
+sub findPath {
 	my ($map, $start, $target) = @_;
 
 	my $open = Heap::Simple->new(order => "<", elements => [Any => \&calcF], user_data => "Open List");
@@ -36,8 +35,7 @@ sub findPath
 	$curr_node = $start;
 
 BIGLOOP:
-	while ( ($open->count) > 0 )
-	{
+	while ( ($open->count) > 0 ) {
 		#choose the one with the lowest F score, remove it from the OPEN and add to the CLOSED list
 		my $nxt_node = $open->extract_min;
 		$curr_node = $nxt_node;
@@ -45,16 +43,14 @@ BIGLOOP:
 
 		#get surrounding squares
 		my $surr_nodes = $map->getSurrounding($curr_node, $target);
-		foreach my $node (@$surr_nodes)
-		{
+		foreach my $node (@$surr_nodes) {
 			my ($surr_id, $surr_cost, $surr_h) = @$node;
 
 			#skip the node if it's in the CLOSED list
 			next if ( (exists $nodes->{$surr_id}) && (! $nodes->{$surr_id}->{inopen}) );
 
 			#add it if it's not already in the OPEN
-			if (! exists $nodes->{$surr_id})
-			{
+			if (! exists $nodes->{$surr_id}) {
 				$nodes->{$surr_id}->{parent} = $curr_node;
 				$nodes->{$surr_id}->{cost} = $surr_cost;
 				$nodes->{$surr_id}->{h} = $surr_h;
@@ -67,56 +63,50 @@ BIGLOOP:
 
 			#otherwise it's already in the OPEN list
 			#check to see if it's cheaper to go through the current square compared to the previous path
-			my $currG = &calcG($surr_id);
-			my $possG = &calcG($curr_node) + $surr_cost;
-			if ($possG < $currG)
-			{
+			my $currG = calcG($surr_id);
+			my $possG = calcG($curr_node) + $surr_cost;
+			if ($possG < $currG) {
 				#change the parent
 				$nodes->{$surr_id}->{parent} = $curr_node;
 				#re-sort the OPEN list
 				$open->clear;
-				foreach my $node (keys %$nodes)
-				{
-					if ($nodes->{$node}->{inopen})
-						{$open->insert($node);}
+				foreach my $node (keys %$nodes)	{
+					if ($nodes->{$node}->{inopen}) {
+						$open->insert($node);
+					}
 				}
 			}
 		}
 	}	#end pathfinding while
 
 	#if the loop exited because the target was found, fillup the $path array
-	if (exists $nodes->{$target})
-	{
+	if (exists $nodes->{$target}) {
 		unshift @$path, $target;
 		my $curr_node = $nodes->{$target}->{parent};
-		while (defined $curr_node)
-		{
+		while (defined $curr_node) {
 			unshift @$path, $curr_node;
 			$curr_node = $nodes->{$curr_node}->{parent};
 		}
 	}
 
 	#if the target was unreacheable, return an empty array ref
-	return $path;
+	return wantarray ? @$path : $path;
 }
 
 #F = G + H
-sub calcF
-{
+sub calcF {
 	my $node = shift;
 	my $f = $nodes->{$node}->{h};
-	$f += &calcG($node);
+	$f += calcG($node);
 
 	return $f;
 }
 
-sub calcG
-{
+sub calcG {
 	my $node = shift;
 	my $g = $nodes->{$node}->{cost};
 	$node = $nodes->{$node}->{parent};
-	while (defined $node)
-	{
+	while (defined $node) {
 		$g += $nodes->{$node}->{cost};
 		$node = $nodes->{$node}->{parent};
 	}
@@ -125,6 +115,7 @@ sub calcG
 }
 
 1;
+
 __END__
 
 =head1 NAME
@@ -150,21 +141,21 @@ AI::Pathfinding::AStar - Perl implementation of the A* pathfinding algorithm
 
 This module implements the A* pathfinding algorithm.  It acts as a base class from which a custom map object can be derived.  It requires from the map object a subroutine named C<getSurrounding> (described below) and provides to the object a routine called C<findPath> (also described below.)  It should also be noted that AI::Pathfinding::AStar defines two other subs (C<calcF> and C<calcG>) which are used only by the C<findPath> routine.
 
-AI::Pathfinding::AStar requires that the map object define a routine named C<getSurrounding> which accepts the starting and ending node ids on your map, and returns an array reference containing the following details about each of the surrounding nodes:
+AI::Pathfinding::AStar requires that the map object define a routine named C<getSurrounding> which accepts the starting and target node ids for which you are calculating the path.  In return it should provide an array reference containing the following details about each of the immediately surrounding nodes:
 
 =over
 
-=item Node ID
+=item * Node ID
 
-=item Cost to enter that node
+=item * Cost to enter that node
 
-=item Heuristic
+=item * Heuristic
 
 =back
 
 Basically you should return an array reference like this: C<[ [$node1, $cost1, $h1], [$node2, $cost2, $h2], [...], ...];>  For more information on heuristics and the best ways to calculate them, visit the links listed in the I<SEE ALSO> section below.  For a very brief idea of how to write a getSurrounding routine, refer to the included tests.
 
-As mentioned earlier, AI::Pathfinding::AStar provides a routine named C<findPath> which requires as input the starting and target node identifiers.  The C<findPath> routine does not care what format you choose for your node IDs.  As long as they are unique, and can be recognized by Perl's C<exists $hash{$nodeid}>, then they will work.  In return, this routine returns a reference to an array of node identifiers representing the least expensive path to your target node.  An empty array means that the target node is entirely unreacheable from the given source.
+As mentioned earlier, AI::Pathfinding::AStar provides a routine named C<findPath> which requires as input the starting and target node identifiers.  The C<findPath> routine does not care what format you choose for your node IDs.  As long as they are unique, and can be distinguished by Perl's C<exists $hash{$nodeid}>, then they will work.  In return, this routine returns an array (or reference) of node identifiers representing the least expensive path to your target node.  An empty array means that the target node is entirely unreacheable from the given source.
 
 =head1 PREREQUISITES
 
