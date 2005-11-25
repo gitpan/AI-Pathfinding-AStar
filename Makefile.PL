@@ -4,7 +4,7 @@ use ExtUtils::MakeMaker;
 WriteMakefile(
     'NAME'		=> 'AI::Pathfinding::AStar',
     'VERSION_FROM'	=> 'AStar.pm', # finds $VERSION
-    'PREREQ_PM'		=> {Heap::Simple => 0.05, Test::More => 0.11},
+    'PREREQ_PM'		=> {Heap::Simple::Perl => 0.05, Test::More => 0.11},
     ($] >= 5.005 ?
 		(ABSTRACT_FROM	=> 'AStar.pm',
 		AUTHOR		=> 'Aaron Dalton <aaron@daltons.ca>') : ()),

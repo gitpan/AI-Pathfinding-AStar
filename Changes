@@ -1,5 +1,8 @@
 Revision history for Perl extension AI::Pathfinding::AStar.
 
+0.05  Fri Nov  25 09:30:00 2005
+	- fixed Makefile.PL to include a dependency on Heap::Simple::Perl to fix all the CPANTester reports
+
 0.04  Mon Oct  17 17:30:00 2005
 	- finally made findpath() aware of the context in which it was called and it will now return either an array or array reference accordingly
 	- minor coding style tweaks

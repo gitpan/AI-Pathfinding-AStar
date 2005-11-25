@@ -5,7 +5,7 @@ use strict;
 use warnings;
 use Carp;
 
-our $VERSION = '0.04';
+our $VERSION = '0.05';
 
 use Heap::Simple;
 my $nodes;
@@ -159,7 +159,10 @@ As mentioned earlier, AI::Pathfinding::AStar provides a routine named C<findPath
 
 =head1 PREREQUISITES
 
-This module requires Heap::Simple to function.
+This module requires Heap::Simple to function.  Currently Makefile.PL 
+requires Heap::Simple::Perl for greatest compatibility, however, if you 
+have a C compiler on your system, you will want to install 
+Heap::Simple::XS for the fastest results.
 
 =head1 SEE ALSO
 

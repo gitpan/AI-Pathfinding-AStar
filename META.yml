@@ -1,11 +1,11 @@
 # http://module-build.sourceforge.net/META-spec.html
 #XXXXXXX This is a prototype!!!  It will change in the future!!! XXXXX#
 name:         AI-Pathfinding-AStar
-version:      0.04
+version:      0.05
 version_from: AStar.pm
 installdirs:  site
 requires:
-    Heap::Simple:                  0.05
+    Heap::Simple::Perl:            0.05
     Test::More:                    0.11
 
 distribution_type: module
