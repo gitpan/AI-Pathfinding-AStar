@@ -1,5 +1,8 @@
 Revision history for Perl extension AI::Pathfinding::AStar.
 
+0.06  Mon Nov  28 19:00:00 2005
+	- no changes, CPAN refused to update the version number so I resubmitted
+
 0.05  Fri Nov  25 09:30:00 2005
 	- fixed Makefile.PL to include a dependency on Heap::Simple::Perl to fix all the CPANTester reports
 
