@@ -5,7 +5,7 @@
 #########################
 
 package AI::Pathfinding::AStar::Test;
-use Test::More tests => 8;
+use Test::More tests => 13;
 BEGIN {
   use base AI::Pathfinding::AStar;
 };
@@ -117,7 +117,7 @@ my $g;
 ok($g = AI::Pathfinding::AStar::Test->new(), 'new()');
 isa_ok($g, AI::Pathfinding::AStar, 'isa');
 
-can_ok($g, qw/getSurrounding findPath calcF calcG/, 'can');
+can_ok($g, qw/getSurrounding findPath findPathIncr doAStar fillPath/, 'can');
 
 my $path = $g->findPath('2.3', '6.3');
 is($path->[0], '2.3',       "check path 0");
@@ -125,3 +125,15 @@ is($path->[1], '3.2',       "check path 1");
 is($path->[2], '4.1',       "check path 2");
 is($path->[3], '5.2',       "check path 3");
 is($path->[4], '6.3',       "check path 4");
+
+my $state = $g->findPathIncr('2.3', '6.3', undef, 2);
+while ($state->{path}->[-1] ne '6.3') {
+	$state = $g->findPathIncr('2.3', '6.3', $state, 2);
+}
+
+is($state->{path}->[0], '2.3',       "check incremental path 0");
+is($state->{path}->[1], '3.2',       "check incremental path 1");
+is($state->{path}->[2], '4.1',       "check incremental path 2");
+is($state->{path}->[3], '5.2',       "check incremental path 3");
+is($state->{path}->[4], '6.3',       "check incremental path 4");
+

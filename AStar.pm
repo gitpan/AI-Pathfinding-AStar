@@ -4,10 +4,13 @@ use 5.006;
 use strict;
 use warnings;
 use Carp;
+use Data::Dumper;
 
-our $VERSION = '0.06';
+our $VERSION = '0.07';
 
-use Heap::Simple;
+use Heap::Fibonacci;
+
+use AI::Pathfinding::AStarNode;
 my $nodes;
 
 sub _init {
@@ -17,101 +20,129 @@ sub _init {
     return $self->SUPER::_init(@_);
 }
 
+sub doAStar
+{
+	my ($map, $target, $open, $nodes, $max) = @_;
 
-sub findPath {
-	my ($map, $start, $target) = @_;
+	my $n = 0;
+FLOOP:	while (1) {
+		last FLOOP if (defined($max) and (++$n == $max));
+                my $curr_node = $open->extract_top();
+		last FLOOP if (!defined($curr_node));
 
-	my $open = Heap::Simple->new(order => "<", elements => [Any => \&calcF], user_data => "Open List");
-	$nodes = {};
-	my $path = [];
-	my $curr_node = undef;
-
-	#add starting square to the open list
-	$nodes->{$start}->{parent} = undef;
-	$nodes->{$start}->{cost} = 0;
-	$nodes->{$start}->{h} = 0;
-	$nodes->{$start}->{inopen} = 1;
-	$open->insert($start);
-	$curr_node = $start;
-
-BIGLOOP:
-	while ( ($open->count) > 0 ) {
-		#choose the one with the lowest F score, remove it from the OPEN and add to the CLOSED list
-		my $nxt_node = $open->extract_min;
-		$curr_node = $nxt_node;
-		$nodes->{$curr_node}->{inopen} = 0;
+		$curr_node->{inopen} = 0;
+		my $G = $curr_node->{g};
 
 		#get surrounding squares
-		my $surr_nodes = $map->getSurrounding($curr_node, $target);
+		my $surr_nodes = $map->getSurrounding($curr_node->{id}, $target);
 		foreach my $node (@$surr_nodes) {
 			my ($surr_id, $surr_cost, $surr_h) = @$node;
 
 			#skip the node if it's in the CLOSED list
 			next if ( (exists $nodes->{$surr_id}) && (! $nodes->{$surr_id}->{inopen}) );
 
-			#add it if it's not already in the OPEN
+			#add it if we haven't seen it before
 			if (! exists $nodes->{$surr_id}) {
-				$nodes->{$surr_id}->{parent} = $curr_node;
-				$nodes->{$surr_id}->{cost} = $surr_cost;
-				$nodes->{$surr_id}->{h} = $surr_h;
-				$nodes->{$surr_id}->{inopen} = 1;
-				$open->insert($surr_id);
+				my $surr_node = AI::Pathfinding::AStarNode->new($surr_id,$G+$surr_cost,$surr_h);
+				$surr_node->{parent} = $curr_node;
+				$surr_node->{cost}   = $surr_cost;
+				$surr_node->{inopen} = 1;
+				$nodes->{$surr_id}   = $surr_node;
+				$open->add($surr_node);
 
 				#exit the loop if we've reached our target
-				last BIGLOOP if (exists $nodes->{$target});
+				last FLOOP if (exists $nodes->{$target});
 			}
-
-			#otherwise it's already in the OPEN list
-			#check to see if it's cheaper to go through the current square compared to the previous path
-			my $currG = calcG($surr_id);
-			my $possG = calcG($curr_node) + $surr_cost;
-			if ($possG < $currG) {
-				#change the parent
-				$nodes->{$surr_id}->{parent} = $curr_node;
-				#re-sort the OPEN list
-				$open->clear;
-				foreach my $node (keys %$nodes)	{
-					if ($nodes->{$node}->{inopen}) {
-						$open->insert($node);
-					}
+			else {
+				#otherwise it's already in the OPEN list
+				#check to see if it's cheaper to go through the current
+				#square compared to the previous path
+                                my $surr_node = $nodes->{$surr_id};
+				my $currG     = $surr_node->{g};
+				my $possG     = $G + $surr_cost;
+				if ($possG < $currG) {
+					#change the parent
+					$surr_node->{parent} = $curr_node;
+					$surr_node->{g}      = $possG;
+					$open->decrease_key($surr_node);
 				}
 			}
 		}
-	}	#end pathfinding while
-
-	#if the loop exited because the target was found, fillup the $path array
-	if (exists $nodes->{$target}) {
-		unshift @$path, $target;
-		my $curr_node = $nodes->{$target}->{parent};
-		while (defined $curr_node) {
-			unshift @$path, $curr_node;
-			$curr_node = $nodes->{$curr_node}->{parent};
-		}
 	}
-
-	#if the target was unreacheable, return an empty array ref
-	return wantarray ? @$path : $path;
 }
 
-#F = G + H
-sub calcF {
-	my $node = shift;
-	my $f = $nodes->{$node}->{h};
-	$f += calcG($node);
+sub fillPath
+{
+	my ($map,$open,$nodes,$target) = @_;
+	my $path = [];
 
-	return $f;
+        my $curr_node = (exists $nodes->{$target}) ? $nodes->{$target} : $open->top();
+	while (defined $curr_node) {
+		unshift @$path, $curr_node->{id};
+		$curr_node = $curr_node->{parent};
+	}
+	return $path;
 }
 
-sub calcG {
-	my $node = shift;
-	my $g = $nodes->{$node}->{cost};
-	$node = $nodes->{$node}->{parent};
-	while (defined $node) {
-		$g += $nodes->{$node}->{cost};
-		$node = $nodes->{$node}->{parent};
+
+sub findPath {
+	my ($map, $start, $target) = @_;
+
+	my $nodes = {};
+	my $curr_node = undef;
+
+	my $open = Heap::Fibonacci->new;
+	#add starting square to the open list
+	$curr_node = AI::Pathfinding::AStarNode->new($start,0,0);  # AStarNode(id,g,h)
+	$curr_node->{parent} = undef;
+	$curr_node->{cost}   = 0;
+	$curr_node->{g}      = 0;
+	$curr_node->{h}      = 0;
+	$curr_node->{inopen} = 1;
+       	$nodes->{$start}     = $curr_node;
+	$open->add($curr_node);
+
+	$map->doAStar($target,$open,$nodes,undef);
+
+	my $path = $map->fillPath($open,$nodes,$target);
+
+	return wantarray ? @{$path} : $path;
+}
+
+sub findPathIncr {
+	my ($map, $start, $target, $state, $max) = @_;
+
+	my $open = undef;
+	my $curr_node = undef;;
+	my $nodes = {};
+        if (defined($state)) {
+		$nodes = $state->{'visited'};
+		$open  = $state->{'open'};
+        }
+	else {
+		$open = Heap::Fibonacci->new;
+		#add starting square to the open list
+		$curr_node = AI::Pathfinding::AStarNode->new($start,0,0);  # AStarNode(id,g,h)
+		$curr_node->{parent} = undef;
+		$curr_node->{cost}   = 0;
+		$curr_node->{g}      = 0;
+		$curr_node->{h}      = 0;
+		$curr_node->{inopen} = 1;
+       		$nodes->{$start} = $curr_node;
+		$open->add($curr_node);
 	}
 
-	return $g;
+	$map->doAStar($target,$open,$nodes,$max);
+
+	my $path = $map->fillPath($open,$nodes,$target);
+	$state = {
+		'path'    => $path,
+		'open'    => $open,
+		'visited' => $nodes,
+		'done'    => defined($nodes->{$target}),
+	};
+
+	return $state;
 }
 
 1;
@@ -136,10 +167,18 @@ AI::Pathfinding::AStar - Perl implementation of the A* pathfinding algorithm
   my $map = My::Map::Package->new or die "No map for you!";
   my $path = $map->findPath($start, $target);
   print join(', ', @$path), "\n";
-
+  
+  #Or you can do it incrementally, say 3 nodes at a time
+  my $state = $map->findPathIncr($start, $target, undef, 3);
+  while ($state->{path}->[-1] ne $target) {
+	  print join(', ', @{$state->{path}}), "\n";
+	  $state = $map->findPathIncr($start, $target, $state, 3);
+  }
+  print "Completed Path: ", join(', ', @{$state->{path}}), "\n";
+  
 =head1 DESCRIPTION
 
-This module implements the A* pathfinding algorithm.  It acts as a base class from which a custom map object can be derived.  It requires from the map object a subroutine named C<getSurrounding> (described below) and provides to the object a routine called C<findPath> (also described below.)  It should also be noted that AI::Pathfinding::AStar defines two other subs (C<calcF> and C<calcG>) which are used only by the C<findPath> routine.
+This module implements the A* pathfinding algorithm.  It acts as a base class from which a custom map object can be derived.  It requires from the map object a subroutine named C<getSurrounding> (described below) and provides to the object two routines called C<findPath> and C<findPathIncr> (also described below.)  It should also be noted that AI::Pathfinding::AStar defines two other subs (C<calcF> and C<calcG>) which are used only by the C<findPath> routines.
 
 AI::Pathfinding::AStar requires that the map object define a routine named C<getSurrounding> which accepts the starting and target node ids for which you are calculating the path.  In return it should provide an array reference containing the following details about each of the immediately surrounding nodes:
 
@@ -155,18 +194,15 @@ AI::Pathfinding::AStar requires that the map object define a routine named C<get
 
 Basically you should return an array reference like this: C<[ [$node1, $cost1, $h1], [$node2, $cost2, $h2], [...], ...];>  For more information on heuristics and the best ways to calculate them, visit the links listed in the I<SEE ALSO> section below.  For a very brief idea of how to write a getSurrounding routine, refer to the included tests.
 
-As mentioned earlier, AI::Pathfinding::AStar provides a routine named C<findPath> which requires as input the starting and target node identifiers.  The C<findPath> routine does not care what format you choose for your node IDs.  As long as they are unique, and can be distinguished by Perl's C<exists $hash{$nodeid}>, then they will work.  In return, this routine returns an array (or reference) of node identifiers representing the least expensive path to your target node.  An empty array means that the target node is entirely unreacheable from the given source.
+As mentioned earlier, AI::Pathfinding::AStar provides two routines named C<findPath> and C<findPathIncr>.  C<findPath> requires as input the starting and target node identifiers.  It is unimportant what format you choose for your node IDs.  As long as they are unique, and can be distinguished by Perl's C<exists $hash{$nodeid}>, then they will work.  C<findPath> then returns an array (or reference) of node identifiers representing the least expensive path to your target node.  An empty array means that the target node is entirely unreacheable from the given source.  C<findPathIncr> on the other hand allows you to calculate a particularly long path in chunks.  C<findPathIncr> also takes the starting and target node identifiers but also accepts a C<state> variable and a maxiumum number of nodes to calculate before returning.  C<findPathIncr> then returns a hash representing the current state that can then be passed back in for further processing later.  The current path can be found in C<$state->{path}>.
 
 =head1 PREREQUISITES
 
-This module requires Heap::Simple to function.  Currently Makefile.PL 
-requires Heap::Simple::Perl for greatest compatibility, however, if you 
-have a C compiler on your system, you will want to install 
-Heap::Simple::XS for the fastest results.
+This module requires Heap (specifically Heap::Fibonacci and Heap::Elem) to function.
 
 =head1 SEE ALSO
 
-Heap::Simple, L<http://www.policyalmanac.org/games/aStarTutorial.htm>, L<http://xenon.stanford.edu/~amitp/gameprog.html>
+L<http://www.policyalmanac.org/games/aStarTutorial.htm>, L<http://xenon.stanford.edu/~amitp/gameprog.html>
 
 =head1 AUTHOR
 
