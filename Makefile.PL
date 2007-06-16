@@ -3,9 +3,13 @@ use ExtUtils::MakeMaker;
 # the contents of the Makefile that is written.
 WriteMakefile(
     'NAME'		=> 'AI::Pathfinding::AStar',
-    'VERSION_FROM'	=> 'AStar.pm', # finds $VERSION
-    'PREREQ_PM'		=> {Heap::Fibonacci => 0, Test::More => 0.11},
+    'VERSION_FROM'	=> 'AI/Pathfinding/AStar.pm', # finds $VERSION
+    'PREREQ_PM'		=> {
+				Heap::Binomial => 0, 
+				Heap::Elem => 0, 
+				Test::More => 0.11,
+			   },
     ($] >= 5.005 ?
-		(ABSTRACT_FROM	=> 'AStar.pm',
+		(ABSTRACT_FROM	=> 'AI/Pathfinding/AStar.pm',
 		AUTHOR		=> 'Aaron Dalton <aaron@daltons.ca>') : ()),
 );

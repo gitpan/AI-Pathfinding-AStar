@@ -4,13 +4,12 @@ use 5.006;
 use strict;
 use warnings;
 use Carp;
-use Data::Dumper;
 
-our $VERSION = '0.07';
+our $VERSION = '0.08';
 
-use Heap::Fibonacci;
+use Heap::Binomial;
 
-use AI::Pathfinding::AStarNode;
+use AI::Pathfinding::AStar::AStarNode;
 my $nodes;
 
 sub _init {
@@ -25,11 +24,12 @@ sub doAStar
 	my ($map, $target, $open, $nodes, $max) = @_;
 
 	my $n = 0;
-FLOOP:	while (1) {
-		last FLOOP if (defined($max) and (++$n == $max));
-                my $curr_node = $open->extract_top();
-		last FLOOP if (!defined($curr_node));
+	FLOOP:	while ( (defined $open->top()) && ($open->top()->{id} ne $target) ) {
 
+		#allow incremental calculation
+		last FLOOP if (defined($max) and (++$n == $max));
+
+		my $curr_node = $open->extract_top();
 		$curr_node->{inopen} = 0;
 		my $G = $curr_node->{g};
 
@@ -43,21 +43,18 @@ FLOOP:	while (1) {
 
 			#add it if we haven't seen it before
 			if (! exists $nodes->{$surr_id}) {
-				my $surr_node = AI::Pathfinding::AStarNode->new($surr_id,$G+$surr_cost,$surr_h);
+				my $surr_node = AI::Pathfinding::AStar::AStarNode->new($surr_id,$G+$surr_cost,$surr_h);
 				$surr_node->{parent} = $curr_node;
 				$surr_node->{cost}   = $surr_cost;
 				$surr_node->{inopen} = 1;
 				$nodes->{$surr_id}   = $surr_node;
 				$open->add($surr_node);
-
-				#exit the loop if we've reached our target
-				last FLOOP if (exists $nodes->{$target});
 			}
 			else {
 				#otherwise it's already in the OPEN list
 				#check to see if it's cheaper to go through the current
 				#square compared to the previous path
-                                my $surr_node = $nodes->{$surr_id};
+				my $surr_node = $nodes->{$surr_id};
 				my $currG     = $surr_node->{g};
 				my $possG     = $G + $surr_cost;
 				if ($possG < $currG) {
@@ -91,15 +88,15 @@ sub findPath {
 	my $nodes = {};
 	my $curr_node = undef;
 
-	my $open = Heap::Fibonacci->new;
+	my $open = Heap::Binomial->new;
 	#add starting square to the open list
-	$curr_node = AI::Pathfinding::AStarNode->new($start,0,0);  # AStarNode(id,g,h)
+	$curr_node = AI::Pathfinding::AStar::AStarNode->new($start,0,0);  # AStarNode(id,g,h)
 	$curr_node->{parent} = undef;
 	$curr_node->{cost}   = 0;
 	$curr_node->{g}      = 0;
 	$curr_node->{h}      = 0;
 	$curr_node->{inopen} = 1;
-       	$nodes->{$start}     = $curr_node;
+	$nodes->{$start}     = $curr_node;
 	$open->add($curr_node);
 
 	$map->doAStar($target,$open,$nodes,undef);
@@ -120,9 +117,9 @@ sub findPathIncr {
 		$open  = $state->{'open'};
         }
 	else {
-		$open = Heap::Fibonacci->new;
+		$open = Heap::Binomial->new;
 		#add starting square to the open list
-		$curr_node = AI::Pathfinding::AStarNode->new($start,0,0);  # AStarNode(id,g,h)
+		$curr_node = AI::Pathfinding::AStar::AStarNode->new($start,0,0);  # AStarNode(id,g,h)
 		$curr_node->{parent} = undef;
 		$curr_node->{cost}   = 0;
 		$curr_node->{g}      = 0;
@@ -198,7 +195,7 @@ As mentioned earlier, AI::Pathfinding::AStar provides two routines named C<findP
 
 =head1 PREREQUISITES
 
-This module requires Heap (specifically Heap::Fibonacci and Heap::Elem) to function.
+This module requires Heap (specifically Heap::Binomial and Heap::Elem) to function.
 
 =head1 SEE ALSO
 

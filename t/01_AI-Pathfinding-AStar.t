@@ -1,11 +1,7 @@
-# Before `make install' is performed this script should be runnable with
-# `make test'. After `make install' it should work as `perl
-# Games-Sequential.t'
-
 #########################
 
 package AI::Pathfinding::AStar::Test;
-use Test::More tests => 13;
+use Test::More tests => 7;
 BEGIN {
   use base AI::Pathfinding::AStar;
 };
@@ -20,13 +16,13 @@ BEGIN {
 #
 #       . . . . . . .
 #       . . . | . . .
-#       . @ . | . * .
+#       @ . . | . . *
 #       . . . | . . .
 #       . . . . . . .
 #
 #Where . represents open squares and | represents walls.  The @ represents our
 #starting square and the * the target square.  This module assumes that
-#orthogonal moves cost 10 points and diagonal moves cost 15.  The heuristic
+#orthogonal moves cost 10 points and diagonal moves cost 140.  The heuristic
 #used is Manhattan, which simply counts the orthogonal distance between any 2
 #squares whilst disregarding any barriers.
 
@@ -96,7 +92,7 @@ sub getSurrounding
 
 	my $surrounding = [];
 
-	#orthogonal moves cost 10, diagonal cost 14
+	#orthogonal moves cost 10, diagonal cost 140
 	foreach my $node (getOrth($source))
 	{
 		if ( (exists $map{$node}) && ($map{$node}) )
@@ -105,13 +101,14 @@ sub getSurrounding
 	foreach my $node (getDiag($source))
 	{
 		if ( (exists $map{$node}) && ($map{$node}) )
-			{push @$surrounding, [$node, 14, calcH($node, $target)];}
+			{push @$surrounding, [$node, 140, calcH($node, $target)];}
 	}
 
 	return $surrounding;
 }
 
 
+use YAML qw(Dump);
 my $g;
 
 ok($g = AI::Pathfinding::AStar::Test->new(), 'new()');
@@ -119,21 +116,8 @@ isa_ok($g, AI::Pathfinding::AStar, 'isa');
 
 can_ok($g, qw/getSurrounding findPath findPathIncr doAStar fillPath/, 'can');
 
-my $path = $g->findPath('2.3', '6.3');
-is($path->[0], '2.3',       "check path 0");
-is($path->[1], '3.2',       "check path 1");
-is($path->[2], '4.1',       "check path 2");
-is($path->[3], '5.2',       "check path 3");
-is($path->[4], '6.3',       "check path 4");
-
-my $state = $g->findPathIncr('2.3', '6.3', undef, 2);
-while ($state->{path}->[-1] ne '6.3') {
-	$state = $g->findPathIncr('2.3', '6.3', $state, 2);
-}
-
-is($state->{path}->[0], '2.3',       "check incremental path 0");
-is($state->{path}->[1], '3.2',       "check incremental path 1");
-is($state->{path}->[2], '4.1',       "check incremental path 2");
-is($state->{path}->[3], '5.2',       "check incremental path 3");
-is($state->{path}->[4], '6.3',       "check incremental path 4");
-
+my $path1 = $g->findPath('1.3', '7.3');
+my $path2 = $g->findPath('2.3', '1.4');
+is(@$path,        11,  "check path length");
+is($path->[1], '2.3',       "check path 0");
+is($path->[1], '2.4',       "check path 2");
