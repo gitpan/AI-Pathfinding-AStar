@@ -1,7 +1,7 @@
 #########################
 
 package AI::Pathfinding::AStar::Test;
-use Test::More tests => 7;
+use Test::More tests => 6;
 BEGIN {
   use base AI::Pathfinding::AStar;
 };
@@ -107,8 +107,6 @@ sub getSurrounding
 	return $surrounding;
 }
 
-
-use YAML qw(Dump);
 my $g;
 
 ok($g = AI::Pathfinding::AStar::Test->new(), 'new()');
@@ -118,6 +116,6 @@ can_ok($g, qw/getSurrounding findPath findPathIncr doAStar fillPath/, 'can');
 
 my $path1 = $g->findPath('1.3', '7.3');
 my $path2 = $g->findPath('2.3', '1.4');
-is(@$path,        11,  "check path length");
-is($path->[1], '2.3',       "check path 0");
-is($path->[1], '2.4',       "check path 2");
+is(@$path1,        11,  "check path length");
+is($path1->[1], '2.3',       "check path 0");
+is($path2->[1], '2.4',       "check path 2");

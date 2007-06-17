@@ -1,5 +1,9 @@
 Revision history for Perl extension AI::Pathfinding::AStar.
 
+0.10  Sun Jun   17 16:00:00 2007
+	- *sighs*  A debugging remnant in the test files caused make test 
+to fail.  This appears to fix it.
+
 0.09  Sat Jun   16 19:00:00 2007
 	- I apologize.  Revision number bumped due to distribution snafu.
 
