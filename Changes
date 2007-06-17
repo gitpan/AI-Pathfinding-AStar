@@ -1,5 +1,8 @@
 Revision history for Perl extension AI::Pathfinding::AStar.
 
+0.09  Sat Jun   16 19:00:00 2007
+	- I apologize.  Revision number bumped due to distribution snafu.
+
 0.08  Sat Jun   16 16:00:00 2007
 	- Major bug fixed that caused some paths to be incorrectly 
 determined due to an over-greedy implementation.  Thanks, Flavio!
